@@ -11,71 +11,79 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 参照{@link QueueConsumer}
+ * 
  * @author vv
  * @since 2017/4/2.
  */
 public class QueueProducer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(QueueProducer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(QueueProducer.class);
 
-    private ActiveMQConnectionFactory factory;
+	private ActiveMQConnectionFactory factory;
 
-    private Connection connection;
+	private Connection connection;
 
-    private Session session;
+	private Session session;
 
-    private MessageProducer producer;
+	private MessageProducer producer;
 
-    private List<Queue> queues = new ArrayList();
+	private Map<String, Queue> queues = new HashMap();
 
-    public QueueProducer(String brokerURL) throws JMSException {
-        factory = new ActiveMQConnectionFactory(brokerURL);
-        connection = factory.createConnection();
-        try {
-            connection.start();
-        } catch (JMSException e) {
-            connection.close();
-            throw e;
-        }
-        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        //不指定topic，producer就可以灵活的给任意queue发送信息了
-        producer = session.createProducer(null);
-    }
+	public QueueProducer(String brokerURL) throws JMSException {
+		factory = new ActiveMQConnectionFactory(brokerURL);
+		connection = factory.createConnection();
+		try {
+			connection.start();
+		} catch (JMSException e) {
+			connection.close();
+			throw e;
+		}
+		session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+		// 不指定topic，producer就可以灵活的给任意queue发送信息了
+		producer = session.createProducer(null);
+	}
 
-    public void createQueue(String queueName) throws JMSException {
-        queues.add(session.createQueue(queueName));
-    }
+	public Queue createQueue(String queueName) throws JMSException {
+		LOGGER.info("create queue " + queueName);
+		Queue queue = session.createQueue(queueName);
+		queues.put(queueName, queue);
+		return queue;
+	}
 
-    public void push(String queueName,String group, String message) throws JMSException {
-        for (Queue queue : queues) {
-            if (queueName.equals(queue.getQueueName())) {
-                TextMessage msg = session.createTextMessage(message);
-                msg.setStringProperty("group", group);
-                producer.send(queue, msg);
-                LOGGER.info("send message "+ message);
-                return;
-            }
-        }
-        LOGGER.error("can not push " + message + " to " + queueName);
-    }
+	public void send(String queueName, String group, String message) throws JMSException {
+		Queue queue = queues.get(queueName);
+		if (queue == null) {
+			synchronized (QueueProducer.class) {
+				queue = queues.get(queueName);
+				if (queue == null) {
+					queue = createQueue(queueName);
+				}
+			}
+		}
+		TextMessage msg = session.createTextMessage(message);
+		msg.setStringProperty("group", group);
+		producer.send(queue, msg);
+	}
 
-    public void close() throws JMSException {
-        if (connection != null) {
-            connection.close();
-        }
-    }
+	public void close() throws JMSException {
+		if (connection != null) {
+			connection.close();
+		}
+	}
 
-    public static void main(String[] args) throws Exception {
-        QueueProducer p1 = new QueueProducer("tcp://localhost:61616");
-        p1.createQueue("PRICE");
-        while(true){
-            p1.push("PRICE","group-a", "12");
-            System.in.read();
-        }
+	public static void main(String[] args) throws Exception {
+		QueueProducer p1 = new QueueProducer(
+				"failover:(tcp://10.170.130.27:61616,tcp://10.170.130.27:61626,tcp://10.170.130.27:61636)");
+		while (true) {
+			System.in.read();
+			p1.send("PRICE", "group-a", "12");
+		}
 
-    }
+	}
 }
