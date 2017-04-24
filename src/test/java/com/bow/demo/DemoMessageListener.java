@@ -25,7 +25,6 @@ public class DemoMessageListener implements MessageListener {
     @Override
     public void onMessage(Message message) {
         try {
-            message.acknowledge();//接收消息
             if (message instanceof TextMessage) {
                 TextMessage textMessage = (TextMessage) message;
                 LOGGER.info(
