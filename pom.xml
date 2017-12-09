@@ -123,6 +123,16 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/test/java</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                    <include>**/*.properties</include>
+                </includes>
+            </resource>
+        </resources>
+
         <plugins>
             <!-- 编译插件 -->
             <plugin>

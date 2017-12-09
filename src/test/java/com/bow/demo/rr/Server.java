@@ -1,4 +1,4 @@
-package com.bow.demo;
+package com.bow.demo.rr;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
