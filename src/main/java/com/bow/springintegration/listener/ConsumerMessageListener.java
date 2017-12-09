@@ -8,10 +8,14 @@ import javax.jms.ObjectMessage;
 import javax.jms.TextMessage;
 
 import com.bow.springintegration.entity.Email;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jms.support.converter.MessageConverter;
 
 
 public class ConsumerMessageListener implements MessageListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerMessageListener.class);
 
     private MessageConverter messageConverter;
 
@@ -19,9 +23,8 @@ public class ConsumerMessageListener implements MessageListener {
         if (message instanceof TextMessage) {
             //这里我们知道生产者发送的就是一个纯文本消息，所以这里可以直接进行强制转换，或者直接把onMessage方法的参数改成Message的子类TextMessage
             TextMessage textMsg = (TextMessage) message;
-            System.out.println("接收到一个纯文本消息。");
             try {
-                System.out.println("消息内容是：" + textMsg.getText());
+                LOGGER.info("消息内容是：" + textMsg.getText());
             } catch (JMSException e) {
                 e.printStackTrace();
             }
@@ -31,7 +34,7 @@ public class ConsumerMessageListener implements MessageListener {
             ObjectMessage objMessage = (ObjectMessage) message;
             try {
                 Email email = (Email) messageConverter.fromMessage(objMessage);
-                System.out.println("接收到一个ObjectMessage，包含Email对象。");
+                LOGGER.info("接收到一个ObjectMessage，包含Email对象。");
                 System.out.println(email);
             } catch (JMSException e) {
                 e.printStackTrace();

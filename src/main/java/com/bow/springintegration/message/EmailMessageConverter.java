@@ -11,11 +11,13 @@ public class EmailMessageConverter implements MessageConverter {
 
 	public Message toMessage(Object object, Session session)
 			throws JMSException, MessageConversionException {
+		System.out.println("EmailMessageConverter.toMessage");
 		return null;
 	}
 
 	public Object fromMessage(Message message) throws JMSException,
 			MessageConversionException {
+		System.out.println("EmailMessageConverter.fromMessage");
 		return null;
 	}
 

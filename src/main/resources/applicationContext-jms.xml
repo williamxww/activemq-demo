@@ -15,14 +15,8 @@
     <bean id="targetConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
         <property name="brokerURL" value="tcp://localhost:61616"/>
     </bean>
-
     <bean id="connectionFactory" class="org.springframework.jms.connection.SingleConnectionFactory">
         <property name="targetConnectionFactory" ref="targetConnectionFactory"/>
-    </bean>
-
-    <!-- Spring提供的JMS工具类，它可以进行消息发送、接收等 -->
-    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
-        <property name="connectionFactory" ref="connectionFactory"/>
     </bean>
 
     <!-- queue -->
@@ -43,6 +37,17 @@
     <bean id="consumerMessageListener" class="com.bow.springintegration.listener.ConsumerMessageListener">
         <property name="messageConverter" ref="emailMessageConverter"/>
     </bean>
+
+
+    <!-- 消息监听容器 -->
+    <bean id="jmsContainer"
+          class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="destination" ref="queueDestination"/>
+        <property name="messageListener" ref="consumerMessageListener"/>
+    </bean>
+
+
     <!-- 可以获取session的MessageListener -->
     <bean id="consumerSessionAwareMessageListener"
           class="com.bow.springintegration.listener.ConsumerSessionAwareMessageListener">
@@ -60,15 +65,10 @@
         </property>
     </bean>
 
-    <!-- 消息监听容器 -->
-    <bean id="jmsContainer"
-          class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+    <!-- Spring提供的JMS工具类，它可以进行消息发送、接收等 -->
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
         <property name="connectionFactory" ref="connectionFactory"/>
-        <property name="destination" ref="queueDestination"/>
-        <property name="messageListener" ref="consumerMessageListener"/>
     </bean>
-
-
 
 
 </beans>
