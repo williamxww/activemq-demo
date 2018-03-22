@@ -16,82 +16,47 @@
  */
 package com.bow.demo.durable;
 
+import javax.jms.Connection;
+import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.Session;
+import javax.jms.Topic;
+
 import org.apache.activemq.ActiveMQConnectionFactory;
 
-import javax.jms.*;
-import java.util.concurrent.CountDownLatch;
+import com.bow.demo.DemoMessageListener;
 
 /**
  * @author <a href="http://www.christianposta.com/blog">Christian Posta</a>
  */
-public class Subscriber implements MessageListener {
+public class Subscriber {
     private static final String BROKER_URL = "tcp://localhost:61616";
 
     private static final Boolean NON_TRANSACTED = false;
 
+    Session session;
 
-    private final CountDownLatch countDownLatch;
-    public Subscriber(CountDownLatch latch) {
-        countDownLatch = latch;
-    }
+    private String clientId;
 
-    public static void main(String[] args) {
-        String url = BROKER_URL;
-        if (args.length > 0) {
-            url = args[0].trim();
-        }
-        System.out.println("\nWaiting to receive messages... Either waiting for END message or press Ctrl+C to exit");
+    public Subscriber(String clientId, String url) throws JMSException {
+        this.clientId = clientId;
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("admin", "password", url);
-        Connection connection = null;
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        try {
-
-            connection = connectionFactory.createConnection();
-            String clientId = System.getProperty("clientId");
-            connection.setClientID("vv");
-
-            connection.start();
-
-            Session session = connection.createSession(NON_TRANSACTED, Session.AUTO_ACKNOWLEDGE);
-            Topic destination = session.createTopic("test-topic");
-
-            MessageConsumer consumer = session.createDurableSubscriber(destination, clientId) ;
-            consumer.setMessageListener(new Subscriber(latch));
-
-            latch.await();
-            consumer.close();
-            session.close();
-
-        } catch (Exception e) {
-            System.out.println("Caught exception!");
-        }
-        finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (JMSException e) {
-                    System.out.println("Could not close an open connection...");
-                }
-            }
-        }
+        Connection connection = connectionFactory.createConnection();
+        connection.setClientID(clientId);
+        connection.start();
+        session = connection.createSession(NON_TRANSACTED, Session.AUTO_ACKNOWLEDGE);
     }
 
-    @Override
-    public void onMessage(Message message) {
-        try {
-            if (message instanceof TextMessage) {
-                String text = ((TextMessage) message).getText();
-                if ("END".equalsIgnoreCase(text)) {
-                    System.out.println("Received END message!");
-                    countDownLatch.countDown();
-                }
-                else {
-                    System.out.println("Received message:" +text);
-                }
-            }
-        } catch (JMSException e) {
-            System.out.println("Got a JMS Exception!");
-        }
+    public void durableSubscribe(String topicName, MessageListener listener) throws JMSException {
+        Topic topic = session.createTopic(topicName);
+        MessageConsumer consumer = session.createDurableSubscriber(topic, clientId);
+        consumer.setMessageListener(listener);
     }
+
+    public static void main(String[] args) throws JMSException {
+        Subscriber s1 = new Subscriber("vv", BROKER_URL);
+        s1.durableSubscribe("test-topic", new DemoMessageListener("s1"));
+    }
+
 }

@@ -21,14 +21,14 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import javax.jms.*;
 
 /**
- * @author <a href="http://www.christianposta.com/blog">Christian Posta</a>
+ * 发送持久化topic消息，并设置失效时间。
  */
 public class Publisher {
 
     private static final String BROKER_URL = "tcp://localhost:61616";
     private static final Boolean NON_TRANSACTED = false;
-    private static final int NUM_MESSAGES_TO_SEND = 100;
-    private static final long DELAY = 100;
+    private static final int NUM_MESSAGES_TO_SEND = 10;
+    private static final long DELAY = 10;
 
     public static void main(String[] args) {
         String url = BROKER_URL;
@@ -47,11 +47,15 @@ public class Publisher {
             Destination destination = session.createTopic("test-topic");
             MessageProducer producer = session.createProducer(destination);
             producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+            // 此属性和TimeToLive一起决定过期时间点
+            producer.setDisableMessageTimestamp(false);
+            producer.setTimeToLive(10_000);
 
             for (int i = 0; i < NUM_MESSAGES_TO_SEND; i++) {
                 TextMessage message = session.createTextMessage("Message #" + i);
-                System.out.println("Sending message #" + i);
                 producer.send(message);
+                System.out.println("Sending message #" + i);
+                System.in.read();
                 Thread.sleep(DELAY);
             }
 
